@@ -55,6 +55,8 @@ class StudentController extends \App\Http\Controllers\Controller
 
         if ($notification['status'] === 'sent') {
             $message .= ' '.__('The parent was sent the fees to pay (control number :cn).', ['cn' => $notification['control_number']]);
+        } elseif ($notification['status'] === 'failed') {
+            $message .= ' '.__('The fees message failed to send (control number :cn is still valid). Try resending it from the invoice.', ['cn' => $notification['control_number']]);
         } elseif ($notification['status'] === 'skipped') {
             $message .= ' '.__(match ($notification['reason']) {
                 'no_fee_structure' => 'No fee structure exists for this class and year, so no fees message was sent.',

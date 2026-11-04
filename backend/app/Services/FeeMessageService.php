@@ -33,7 +33,7 @@ class FeeMessageService
      * texts their parent. Never throws for a missing piece — the admission has
      * already succeeded — but says what was skipped and why.
      *
-     * @return array{status: 'sent'|'skipped', reason: ?string, invoice: ?Invoice, sms: ?SmsLog}
+     * @return array{status: 'sent'|'failed'|'skipped', reason: ?string, invoice: ?Invoice, sms: ?SmsLog}
      */
     public function onAdmission(Student $student, ?User $by = null): array
     {
@@ -60,7 +60,12 @@ class FeeMessageService
 
         $log = $this->send($invoice, $student, $guardian, 'admission_fees', $by);
 
-        return ['status' => 'sent', 'reason' => null, 'invoice' => $invoice, 'sms' => $log];
+        return [
+            'status' => $log->status === 'failed' ? 'failed' : 'sent',
+            'reason' => $log->status === 'failed' ? ($log->error ?? 'gateway_error') : null,
+            'invoice' => $invoice,
+            'sms' => $log,
+        ];
     }
 
     /** Texts the parent about an existing invoice (resend, or after invoices are generated for a class). */

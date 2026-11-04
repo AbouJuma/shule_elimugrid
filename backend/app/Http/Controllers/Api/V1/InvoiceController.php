@@ -88,6 +88,6 @@ class InvoiceController extends Controller
 
         $log = $messages->forInvoice($invoice->load('student'), $request->user(), $request->input('type') === 'reminder' ? 'fee_reminder' : 'fee_invoice');
 
-        return response()->json(['data' => ['queued' => true, 'to' => $log->recipient_name, 'message' => $log->message]]);
+        return response()->json(['data' => ['status' => $log->status, 'to' => $log->recipient_name, 'message' => $log->message]]);
     }
 }

@@ -225,7 +225,6 @@ class StatutoryPayrollTest extends TestCase
 
     public function test_approved_payslips_can_be_sent_by_sms_to_staff_with_a_phone_number(): void
     {
-        \Illuminate\Support\Facades\Queue::fake();
         [$school, $admin] = $this->makeSchool();
         $svc = app(PayrollService::class);
 
@@ -247,7 +246,7 @@ class StatutoryPayrollTest extends TestCase
         $this->assertSame('255712345678', $log->recipient_phone);
         $this->assertStringContainsString('500,000', $log->message);
         $this->assertStringContainsString('September 2026', $log->message);
-        \Illuminate\Support\Facades\Queue::assertPushed(\App\Jobs\SendSmsJob::class);
+        $this->assertSame('simulated', $log->fresh()->status);
     }
 
     public function test_the_payslip_pdf_shows_employer_contributions_separately(): void

@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Communications;
 
-use App\Jobs\SendSmsJob;
 use App\Models\AcademicYear;
 use App\Models\Guardian;
 use App\Models\School;
@@ -13,7 +12,6 @@ use App\Services\DefaultRoleProvisioner;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Queue;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -64,7 +62,6 @@ class CommunicationsTest extends TestCase
     {
         [$school, $class, $student, $admin] = $this->makeSchoolWithStudent('Sunrise');
 
-        Queue::fake();
         Sanctum::actingAs($admin);
 
         $response = $this->postJson('/api/v1/sms-logs', [
@@ -74,9 +71,8 @@ class CommunicationsTest extends TestCase
         ])->assertCreated();
 
         $response->assertJsonPath('data.recipient_phone', '255712345678');
-        $response->assertJsonPath('data.status', 'pending');
+        $response->assertJsonPath('data.status', 'simulated');
 
-        Queue::assertPushed(SendSmsJob::class);
         $this->assertDatabaseHas('sms_logs', [
             'school_id' => $school->id, 'student_id' => $student->id, 'message' => 'Test message',
         ]);
@@ -103,7 +99,6 @@ class CommunicationsTest extends TestCase
             'gender' => 'female', 'date_of_birth' => '2015-01-01', 'admission_date' => '2026-01-15', 'status' => 'active',
         ]);
 
-        Queue::fake();
         Sanctum::actingAs($admin);
 
         $response = $this->postJson('/api/v1/sms-logs', [
@@ -112,7 +107,7 @@ class CommunicationsTest extends TestCase
 
         $response->assertJsonPath('meta.sent', 1);
         $response->assertJsonPath('meta.skipped', 1);
-        Queue::assertPushed(SendSmsJob::class, 1);
+        $response->assertJsonPath('data.0.status', 'simulated');
     }
 
     public function test_the_log_driver_marks_a_message_simulated_not_sent(): void
@@ -124,9 +119,6 @@ class CommunicationsTest extends TestCase
             'recipient_type' => 'student', 'student_id' => $student->id, 'message' => 'Hi',
         ])->json('data.id');
 
-        // No Queue::fake() here — the job runs synchronously against the
-        // real (default) LogSmsGateway binding since SMS_DRIVER isn't set
-        // to 'beem' in testing.
         $response = $this->getJson('/api/v1/sms-logs')->assertOk();
         $log = collect($response->json('data'))->firstWhere('id', $logId);
 

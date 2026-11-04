@@ -2,13 +2,14 @@
 
 namespace App\Services;
 
-use App\Jobs\SendSmsJob;
+use App\Contracts\SmsGateway;
 use App\Models\SmsLog;
 use App\Models\Student;
 use App\Models\User;
 use App\Services\Sms\PhoneNumberNormalizer;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class SmsService
 {
@@ -73,6 +74,16 @@ class SmsService
         return $this->dispatch($schoolId, $phone, $recipientName, $message, $category, $student, $sender);
     }
 
+    /**
+     * Sends inline, in the same request — this app's SMS volume is one
+     * guardian at a time (or a single class at most), and a gateway
+     * round-trip is sub-second, so there's no real benefit to queueing it
+     * and real cost: shared hosting can't run a persistent `queue:work`
+     * daemon, and a cron-triggered drain means a school admin sees
+     * "sent" for a message that's actually still sitting pending for up
+     * to a minute. Sending inline means the admin sees the true result
+     * (sent/failed) the moment the page reloads, not sometime later.
+     */
     protected function dispatch(
         int $schoolId,
         string $phone,
@@ -93,8 +104,21 @@ class SmsService
             'status' => 'pending',
         ]);
 
-        SendSmsJob::dispatch($log);
+        try {
+            $result = app(SmsGateway::class)->send($log->recipient_phone, $log->message);
 
-        return $log;
+            $log->update([
+                'status' => $result->status,
+                'provider_message_id' => $result->providerMessageId,
+                'error' => $result->error,
+                'sent_at' => $result->status === 'failed' ? null : now(),
+            ]);
+        } catch (Throwable $e) {
+            report($e);
+
+            $log->update(['status' => 'failed', 'error' => $e->getMessage()]);
+        }
+
+        return $log->fresh();
     }
 }
