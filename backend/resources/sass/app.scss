@@ -1,0 +1,142 @@
+@import "theme";
+@import "bootstrap/scss/functions";
+@import "bootstrap/scss/variables";
+@import "bootstrap/scss/variables-dark";
+
+// Register a "gold" theme color (brand accent) alongside Bootstrap's
+// standard palette, so bg-gold / btn-gold / text-gold work everywhere.
+$theme-colors: map-merge(
+    $theme-colors,
+    (
+        "gold": $gold-600,
+        "navy": $navy-900,
+    )
+);
+
+@import "bootstrap/scss/maps";
+@import "bootstrap/scss/mixins";
+@import "bootstrap/scss/root";
+@import "bootstrap/scss/bootstrap";
+@import "bootstrap-icons/font/bootstrap-icons.css";
+@import "tom-select/dist/css/tom-select.bootstrap5.css";
+
+body {
+    min-height: 100vh;
+}
+
+// Fixed-height, independently-scrolling sidebar: sticks to the viewport
+// while the page scrolls, and never shrinks when a wide table pushes the
+// main column (flex-shrink:0 + min-width:0 on main below).
+.portal-sidebar {
+    background: $navy-900;
+    color: $navy-100;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    flex: 0 0 260px;
+    width: 260px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.portal-main {
+    min-width: 0;
+}
+
+.portal-sidebar .nav-link {
+    color: $navy-100;
+    border-radius: $border-radius;
+}
+
+.portal-sidebar .nav-link.active,
+.portal-sidebar .nav-link:hover {
+    background: $navy-800;
+    color: #fff;
+}
+
+// Collapsible nav groups (sidebar redesign — grouping related sections
+// instead of one long flat list of links).
+.portal-sidebar .nav-group-toggle {
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.portal-sidebar .nav-group-toggle .bi-chevron-down {
+    transition: transform 0.15s ease;
+    font-size: 0.75rem;
+    opacity: 0.7;
+}
+
+.portal-sidebar .nav-group-toggle[aria-expanded="true"] .bi-chevron-down {
+    transform: rotate(180deg);
+}
+
+.portal-sidebar .nav-submenu .nav-link {
+    font-size: 0.875rem;
+    padding-left: 2.5rem;
+}
+
+.portal-sidebar .brand {
+    color: #fff;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.card-metric .value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: $navy-900;
+}
+
+.badge-status-active {
+    background-color: $green-100;
+    color: $green-700;
+}
+
+.badge-status-suspended {
+    background-color: rgba($error-600, 0.12);
+    color: $error-600;
+}
+
+.badge-status-pending {
+    background-color: rgba($warning-600, 0.12);
+    color: $warning-600;
+}
+
+// Tom Select (searchable dropdowns, applied to every <select> — see
+// resources/js/app.js) — brand-color focus ring instead of Bootstrap's
+// default blue, and a compact variant for filter bars that used
+// form-select-sm before Tom Select replaced their native rendering.
+.ts-wrapper.focus .ts-control {
+    border-color: $navy-700;
+    box-shadow: 0 0 0 0.25rem rgba($navy-700, 0.25);
+}
+
+.ts-dropdown .active {
+    background-color: $gold-100;
+    color: $navy-900;
+}
+
+select.form-select-sm + .ts-wrapper .ts-control {
+    min-height: calc(1.5em + 0.5rem + 2px);
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+
+// Timetable grids
+.timetable-grid th, .timetable-grid td { vertical-align: middle; }
+.tt-cell { padding: 6px 8px; border-radius: $border-radius; background: rgba($navy-900, 0.05); border-left: 3px solid $gold-500; min-width: 110px; }
+.tt-editable { cursor: pointer; }
+.tt-editable:hover { background: rgba($gold-500, 0.18); }
+
+// Printing a timetable (or report screen): just the content, no chrome.
+@media print {
+    .portal-sidebar, header.bg-white, .no-print, .alert, .btn { display: none !important; }
+    .portal-main { width: 100% !important; }
+    .p-4 { padding: 0 !important; }
+    .card { border: 0 !important; box-shadow: none !important; }
+    body { background: #fff !important; }
+}

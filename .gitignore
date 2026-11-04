@@ -1,0 +1,11 @@
+*.zip
+*.log
+*curl_cookies*.txt
+hs_err_pid*.log
+replay_pid*.log
+backend/login_page*.html
+backend/students_page*.html
+backend/invoice_page*.html
+backend/invoice_after*.html
+backend/*_result*.html
+backend/*_headers*.txt

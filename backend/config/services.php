@@ -1,0 +1,85 @@
+<?php
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Third Party Services
+    |--------------------------------------------------------------------------
+    |
+    | This file is for storing the credentials for third party services such
+    | as Mailgun, Postmark, AWS and more. This file provides the de facto
+    | location for this type of information, allowing packages to have
+    | a conventional file to locate the various service credentials.
+    |
+    */
+
+    'postmark' => [
+        'key' => env('POSTMARK_API_KEY'),
+    ],
+
+    'resend' => [
+        'key' => env('RESEND_API_KEY'),
+    ],
+
+    'ses' => [
+        'key' => env('AWS_ACCESS_KEY_ID'),
+        'secret' => env('AWS_SECRET_ACCESS_KEY'),
+        'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
+    ],
+
+    'slack' => [
+        'notifications' => [
+            'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
+            'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
+        ],
+    ],
+
+    /*
+     * BEEM Africa bulk SMS gateway (East Africa, incl. Tanzania — this
+     * deployment's initial market). 'driver' defaults to 'log' (writes
+     * to storage/logs instead of a real network call) so the whole
+     * feature works and is testable without a real Beem account. Set
+     * SMS_DRIVER=beem and the credentials below once a real account
+     * exists — nothing else about the feature changes.
+     */
+    'sms' => [
+        'driver' => env('SMS_DRIVER', 'log'),
+        // Used to normalize a locally-entered number ("0712345678") to
+        // international format ("255712345678") before sending. Tanzania
+        // by default since that's this deployment's initial market.
+        'default_country_code' => env('SMS_DEFAULT_COUNTRY_CODE', '255'),
+        'beem' => [
+            // `?:` rather than env()'s own default: the .env template
+            // pre-declares these keys blank for the user to fill in
+            // later, and env('KEY', 'default') only falls back when the
+            // key is entirely ABSENT — a present-but-empty value (the
+            // template's starting state) is not, so it silently returns
+            // '' instead of the intended default without this.
+            'base_url' => env('BEEMS_BASE_URL') ?: 'https://apisms.beem.africa/v1',
+            'api_key' => env('BEEMS_API_KEY'),
+            'secret_key' => env('BEEMS_SECRET_KEY'),
+            // No universal default is possible here — Beem rejects any sender ID
+            // that isn't already registered and approved on the account behind
+            // these credentials (confirmed live: an unregistered value fails with
+            // "Invalid Sender ID", not a warning). 'INFO' is a placeholder guess,
+            // not a working default; set BEEMS_SENDER_ID to a real approved one.
+            'sender_id' => env('BEEMS_SENDER_ID') ?: 'INFO',
+        ],
+    ],
+
+    /*
+     * Jitsi Meet, for Virtual Classroom sessions. Defaults to their free
+     * public server (meet.jit.si) — no account, credentials, or
+     * self-hosting needed, same "works immediately with a safe default"
+     * approach as SMS_DRIVER=log. Set JITSI_DOMAIN to a self-hosted
+     * instance later if one exists; nothing else about the feature
+     * changes. The public server has no built-in room password, which is
+     * exactly why VirtualClass.room_name is a random unguessable token
+     * rather than anything a client picks.
+     */
+    'jitsi' => [
+        'domain' => env('JITSI_DOMAIN') ?: 'https://meet.jit.si',
+    ],
+
+];

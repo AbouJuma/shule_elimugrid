@@ -1,0 +1,35 @@
+<?php
+
+namespace App\Http\Requests\Certificates;
+
+use App\Support\Tenancy\TenantContext;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+class IssueCertificateRequest extends FormRequest
+{
+    use \App\Http\Requests\Concerns\ResolvesUuidReferences;
+
+    protected function prepareForValidation(): void
+    {
+        $this->resolveUuid('student_id', 'students');
+    }
+
+    public function authorize(): bool
+    {
+        return $this->user()->can('certificates.issue');
+    }
+
+    public function rules(): array
+    {
+        $schoolId = app(TenantContext::class)->id();
+
+        return [
+            'student_id' => ['required', Rule::exists('students', 'id')->where('school_id', $schoolId)],
+            'certificate_template_id' => ['nullable', Rule::exists('certificate_templates', 'id')->where('school_id', $schoolId)],
+            'title' => ['required', 'string', 'max:255'],
+            'achievement' => ['nullable', 'string', 'max:2000'],
+            'issued_date' => ['required', 'date', 'before_or_equal:today'],
+        ];
+    }
+}
