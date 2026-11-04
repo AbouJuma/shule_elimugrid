@@ -17,7 +17,18 @@ Artisan::command('inspire', function () {
  * often) lives here and ships on every `git pull`.
  *
  *   * * * * * cd /path/to/backend && php artisan schedule:run >> /dev/null 2>&1
+ *
+ * Schedule::command(...) would normally shell out to a fresh `php artisan`
+ * process via Symfony's Process component — which needs proc_open, and
+ * some shared hosts (this one included) disable it entirely. Running the
+ * queue worker via Artisan::call() instead executes it in-process, in the
+ * same PHP request `schedule:run` is already in, so it never needs
+ * proc_open/exec at all.
  */
-Schedule::command('queue:work --stop-when-empty --max-time=50 --tries=3')
-    ->everyMinute()
-    ->withoutOverlapping();
+Schedule::call(function () {
+    Artisan::call('queue:work', [
+        '--stop-when-empty' => true,
+        '--max-time' => 50,
+        '--tries' => 3,
+    ]);
+})->name('drain-notification-queue')->everyMinute()->withoutOverlapping();

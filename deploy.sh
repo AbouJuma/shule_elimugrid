@@ -40,7 +40,13 @@ fi
 
 echo "==> Running composer, migrations, and cache rebuild"
 cd "$DEPLOY_DIR"
-composer install --no-dev --optimize-autoloader
+# --no-scripts: composer's own post-install hook runs `@php artisan
+# package:discover` through PHP's Process class, which needs proc_open —
+# disabled on this host (common shared-hosting hardening). Skipping it and
+# running package:discover directly below gets the same result without
+# going through composer's subprocess wrapper.
+composer install --no-dev --optimize-autoloader --no-scripts
+php artisan package:discover --ansi
 php artisan migrate --force
 php artisan config:cache
 php artisan route:cache
