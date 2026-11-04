@@ -231,6 +231,12 @@
                                     };
                                 @endphp
                                 <span class="badge {{ $badge }} rounded-pill px-3 py-2">{{ ucfirst($log->status) }}</span>
+                                @if ($log->provider_message_id)
+                                    <div class="text-secondary small mt-1" title="{{ __('Beem request ID — look this up in the Beem dashboard\'s SMS report to see real delivery status (their \'sent\' just means they accepted it).') }}">{{ $log->provider_message_id }}</div>
+                                @endif
+                                @if ($log->status === 'failed' && $log->error)
+                                    <div class="text-danger small mt-1">{{ \Illuminate\Support\Str::limit($log->error, 60) }}</div>
+                                @endif
                             </td>
                             <td class="text-secondary small">{{ $log->sent_at?->diffForHumans() ?? '—' }}</td>
                         </tr>
