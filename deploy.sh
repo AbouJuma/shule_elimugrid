@@ -14,14 +14,29 @@ cd "$REPO_DIR"
 git pull origin main
 
 echo "==> Syncing backend/ into $DEPLOY_DIR (env, vendor, storage, build left untouched)"
-rsync -a \
-  --exclude='.env' \
-  --exclude='vendor' \
-  --exclude='node_modules' \
-  --exclude='storage' \
-  --exclude='public/build' \
-  --exclude='bootstrap/cache' \
-  "$REPO_DIR/backend/" "$DEPLOY_DIR/"
+if command -v rsync >/dev/null 2>&1; then
+  rsync -a \
+    --exclude='.env' \
+    --exclude='vendor' \
+    --exclude='node_modules' \
+    --exclude='storage' \
+    --exclude='public/build' \
+    --exclude='bootstrap/cache' \
+    "$REPO_DIR/backend/" "$DEPLOY_DIR/"
+else
+  # rsync isn't available on this host (common on shared cPanel) — fall
+  # back to tar, which ships on virtually every Linux box. Piping one
+  # tar's stdout into another's stdin copies the tree while --exclude
+  # keeps the same server-owned paths untouched.
+  tar -cf - \
+    --exclude='.env' \
+    --exclude='vendor' \
+    --exclude='node_modules' \
+    --exclude='storage' \
+    --exclude='public/build' \
+    --exclude='bootstrap/cache' \
+    -C "$REPO_DIR/backend" . | tar -xf - -C "$DEPLOY_DIR"
+fi
 
 echo "==> Running composer, migrations, and cache rebuild"
 cd "$DEPLOY_DIR"
