@@ -107,9 +107,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         const SizedBox(height: AppSpacing.md),
                       ],
                       AppTextField(
-                        label: 'Email',
+                        label: context.tr('Email or Phone Number'),
                         controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
+                        keyboardType: TextInputType.text,
                         autofillHints: const [AutofillHints.username],
                         textInputAction: TextInputAction.next,
                         errorText: _emailError,

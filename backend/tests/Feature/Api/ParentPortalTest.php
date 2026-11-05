@@ -148,6 +148,23 @@ class ParentPortalTest extends TestCase
         ])->assertOk();
     }
 
+    /** A login created with only a phone number (no email) — username and first password are deliberately the same. */
+    public function test_a_phone_only_login_can_sign_in_with_its_own_phone_number_as_the_password(): void
+    {
+        Queue::fake();
+        $admin = $this->user('Admin', 'School Administrator');
+        $guardian = Guardian::create(['school_id' => $this->school->id, 'name' => 'Baraka Mushi', 'phone' => '0755000111']);
+        Sanctum::actingAs($admin);
+
+        $r = $this->postJson("/api/v1/guardians/{$guardian->id}/account", ['phone' => '0755000111'])->assertCreated();
+
+        $this->assertSame('0755000111', $r->json('temporary_password'));
+
+        $this->login()->postJson('/api/v1/auth/login', [
+            'email' => '0755000111', 'password' => '0755000111', 'device_name' => 't',
+        ])->assertOk();
+    }
+
     public function test_only_people_who_manage_guardians_can_create_logins_and_emails_cannot_be_reused(): void
     {
         $guardian = Guardian::create(['school_id' => $this->school->id, 'name' => 'Asha', 'phone' => '0700', 'email' => 'taken@test.local']);

@@ -40,6 +40,7 @@ const Map<String, String> swStrings = {
   'Sign in to your school workspace': 'Ingia kwenye eneo la kazi la shule yako',
   'Sign out': 'Toka',
   'Email': 'Barua pepe',
+  'Email or Phone Number': 'Barua pepe au Namba ya Simu',
   'Password': 'Nenosiri',
   'Show password': 'Onyesha nenosiri',
   'Hide password': 'Ficha nenosiri',

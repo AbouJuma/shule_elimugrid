@@ -55,13 +55,15 @@ class GuardianAccountService
             throw ValidationException::withMessages(['phone' => [__('That phone number is already used by another account.')]]);
         }
 
-        // An email login's first password is simply the guardian's own phone
-        // number — easy to remember/communicate at the gate or over SMS. A
-        // phone-only login can't reuse the phone number itself for this (the
-        // username and password would be identical), so it gets a random one
-        // instead. Either way they can (and should) change it after signing
-        // in, from the app's or portal's own Change Password screen.
-        $password = $email && $guardian->phone ? $guardian->phone : Str::password(12, symbols: false);
+        // First password is the guardian's own phone number — easy to
+        // remember/communicate at the gate or over SMS, even when it's also
+        // the login itself (deliberate: simplest possible first login,
+        // "ataibadilisha akifika ndani"). Falls back to a random one only if
+        // no phone number exists at all. They're expected to change it
+        // straight after signing in, from the app's/portal's own Change
+        // Password screen.
+        $loginPhone = $phone ?: $guardian->phone;
+        $password = $loginPhone ?: Str::password(12, symbols: false);
 
         $user = User::create([
             'school_id' => $school->id,
