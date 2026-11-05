@@ -40,6 +40,10 @@ Route::prefix('v1')->group(function () {
     Route::post('/auth/login', [AuthController::class, 'login'])
         ->middleware('throttle:10,1');
 
+    // AzamPay calls this directly — no Sanctum session, no tenant context.
+    // Protected by its own shared-secret token (see the controller) instead.
+    Route::post('/payments/azampay/callback', [\App\Http\Controllers\Api\V1\PaymentGatewayCallbackController::class, 'azampay']);
+
     Route::middleware(['auth:sanctum', 'tenant', \App\Http\Middleware\SetLocale::class])->group(function () {
         Route::get('/auth/me', [AuthController::class, 'me']);
         Route::post('/auth/logout', [AuthController::class, 'logout']);
@@ -110,6 +114,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/my/children', [\App\Http\Controllers\Api\V1\ParentController::class, 'children']);
         Route::get('/my/children/{student}/bus', [\App\Http\Controllers\Api\V1\ParentController::class, 'bus']);
         Route::get('/my/children/{student}/fees', [\App\Http\Controllers\Api\V1\ParentController::class, 'fees']);
+        Route::post('/my/children/{student}/invoices/{invoice}/pay', [\App\Http\Controllers\Api\V1\ParentController::class, 'payInvoice']);
+        Route::get('/my/children/{student}/payments/{transaction}', [\App\Http\Controllers\Api\V1\ParentController::class, 'paymentStatus']);
         Route::get('/my/children/{student}/attendance', [\App\Http\Controllers\Api\V1\ParentController::class, 'attendance']);
         Route::get('/my/children/{student}/results', [\App\Http\Controllers\Api\V1\ParentController::class, 'results']);
         Route::get('/my/children/{student}/timetable', [\App\Http\Controllers\Api\V1\ParentController::class, 'timetable']);

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Fees\InitiateGatewayPaymentRequest;
 use App\Http\Resources\TransportTripResource;
 use App\Models\AttendanceRecord;
 use App\Models\Exam;
@@ -13,6 +14,7 @@ use App\Models\Term;
 use App\Models\TimetableEntry;
 use App\Models\TransportTrip;
 use App\Models\TripLocation;
+use App\Services\PaymentGatewayService;
 use App\Services\ReportCardService;
 use App\Services\TripService;
 use App\Support\Tenancy\TenantContext;
@@ -90,6 +92,37 @@ class ParentController extends Controller
                 'status' => $i->status, 'due_date' => $i->due_date?->toDateString(),
             ])->values(),
         ]]);
+    }
+
+    /** Pay an invoice's outstanding balance (or part of it) by mobile-money push to $msisdn. */
+    public function payInvoice(InitiateGatewayPaymentRequest $request, string $student, string $invoice, PaymentGatewayService $gateway)
+    {
+        $child = $this->child($request, $student);
+        $invoiceModel = Invoice::where('uuid', $invoice)->where('student_id', $child->id)->firstOrFail();
+
+        $transaction = $gateway->initiate($invoiceModel, $request->validated());
+
+        return response()->json(['data' => $this->transactionPayload($transaction)]);
+    }
+
+    /** Poll this while waiting for the guardian to approve the push on their phone. */
+    public function paymentStatus(Request $request, string $student, string $transaction)
+    {
+        $child = $this->child($request, $student);
+        $gatewayTransaction = \App\Models\PaymentGatewayTransaction::where('uuid', $transaction)->where('student_id', $child->id)->firstOrFail();
+
+        return response()->json(['data' => $this->transactionPayload($gatewayTransaction)]);
+    }
+
+    protected function transactionPayload(\App\Models\PaymentGatewayTransaction $transaction): array
+    {
+        return [
+            'id' => $transaction->uuid,
+            'status' => $transaction->status,
+            'amount' => (string) $transaction->amount,
+            'failure_reason' => $transaction->failure_reason,
+            'receipt_number' => $transaction->payment?->receipt_number,
+        ];
     }
 
     public function attendance(Request $request, string $student)

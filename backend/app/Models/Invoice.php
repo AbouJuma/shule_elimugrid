@@ -62,6 +62,11 @@ class Invoice extends Model
         return $this->hasMany(Payment::class);
     }
 
+    public function gatewayTransactions(): HasMany
+    {
+        return $this->hasMany(PaymentGatewayTransaction::class);
+    }
+
     public function bankAccount(): BelongsTo
     {
         return $this->belongsTo(BankAccount::class);

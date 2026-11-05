@@ -36,7 +36,7 @@ class InvoiceController extends \App\Http\Controllers\Controller
         $this->authorize('fees.view');
 
         return view('school-admin.invoices.show', [
-            'invoice' => $invoice->load(['student', 'bankAccount', 'items', 'payments' => fn ($q) => $q->latest()]),
+            'invoice' => $invoice->load(['student', 'bankAccount', 'items', 'payments' => fn ($q) => $q->latest(), 'gatewayTransactions' => fn ($q) => $q->latest()]),
         ]);
     }
 

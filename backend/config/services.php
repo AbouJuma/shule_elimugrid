@@ -69,6 +69,33 @@ return [
     ],
 
     /*
+     * AzamPay (https://azampay.co.tz) mobile-money checkout — lets a
+     * guardian pay an invoice from the parent app and have the status
+     * update itself when the gateway confirms it, via a callback (see
+     * routes/api.php's /payments/azampay/callback). 'driver' defaults to
+     * 'log' (simulates an instant successful payment, no real account
+     * needed) so the whole feature works and is testable without a real
+     * AzamPay account. Set PAYMENT_GATEWAY_DRIVER=azampay and the sandbox
+     * credentials below once a real AzamPay sandbox account exists —
+     * nothing else about the feature changes.
+     */
+    'payment_gateway' => [
+        'driver' => env('PAYMENT_GATEWAY_DRIVER', 'log'),
+        'azampay' => [
+            'auth_base_url' => env('AZAMPAY_AUTH_BASE_URL') ?: 'https://authenticator-sandbox.azampay.co.tz',
+            'checkout_base_url' => env('AZAMPAY_CHECKOUT_BASE_URL') ?: 'https://sandbox.azampay.co.tz',
+            'app_name' => env('AZAMPAY_APP_NAME'),
+            'client_id' => env('AZAMPAY_CLIENT_ID'),
+            'client_secret' => env('AZAMPAY_CLIENT_SECRET'),
+            // Our own shared secret, appended as ?token=... to the callback
+            // URL we register in the AzamPay dashboard — AzamPay's sandbox
+            // doesn't sign its callbacks, so without this anyone who finds
+            // the URL could POST a fake "payment successful".
+            'callback_token' => env('AZAMPAY_CALLBACK_TOKEN'),
+        ],
+    ],
+
+    /*
      * Jitsi Meet, for Virtual Classroom sessions. Defaults to their free
      * public server (meet.jit.si) — no account, credentials, or
      * self-hosting needed, same "works immediately with a safe default"

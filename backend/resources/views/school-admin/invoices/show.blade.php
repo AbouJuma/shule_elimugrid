@@ -86,6 +86,40 @@
                     </table>
                 @endif
             </div>
+
+            @if ($invoice->gatewayTransactions->isNotEmpty())
+                <div class="card mt-4">
+                    <div class="card-header bg-white">{{ __('Payment Attempts') }} <span class="text-secondary small">({{ __('mobile money / bank') }})</span></div>
+                    <table class="table table-sm mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr><th>{{ __('Provider') }}</th><th>{{ __('Phone') }}</th><th>{{ __('Amount') }}</th><th>{{ __('Status') }}</th><th>{{ __('When') }}</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($invoice->gatewayTransactions as $t)
+                                <tr>
+                                    <td class="small">{{ $t->provider }} <span class="text-secondary">({{ in_array($t->provider, ['CRDB', 'NMB']) ? __('bank') : __('mobile money') }})</span></td>
+                                    <td class="small">{{ $t->msisdn }}</td>
+                                    <td class="small">{{ number_format($t->amount, 2) }}</td>
+                                    <td>
+                                        @php
+                                            $gBadge = match ($t->status) {
+                                                'completed' => 'badge-status-active',
+                                                'failed' => 'badge-status-suspended',
+                                                default => 'badge-status-pending',
+                                            };
+                                        @endphp
+                                        <span class="badge {{ $gBadge }} rounded-pill px-2 py-1">{{ ucfirst($t->status) }}</span>
+                                        @if ($t->status === 'failed' && $t->failure_reason)
+                                            <div class="text-danger small mt-1">{{ \Illuminate\Support\Str::limit($t->failure_reason, 50) }}</div>
+                                        @endif
+                                    </td>
+                                    <td class="text-secondary small">{{ $t->created_at->diffForHumans() }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
         </div>
 
         <div class="col-lg-5">

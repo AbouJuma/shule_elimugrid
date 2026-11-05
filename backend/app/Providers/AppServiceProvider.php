@@ -2,7 +2,10 @@
 
 namespace App\Providers;
 
+use App\Contracts\PaymentGateway;
 use App\Contracts\SmsGateway;
+use App\Services\Payments\AzamPayGateway;
+use App\Services\Payments\LogPaymentGateway;
 use App\Services\Sms\BeemSmsGateway;
 use App\Services\Sms\LogSmsGateway;
 use App\Support\Tenancy\TenantContext;
@@ -29,6 +32,20 @@ class AppServiceProvider extends ServiceProvider
             }
 
             return new LogSmsGateway;
+        });
+
+        $this->app->bind(PaymentGateway::class, function () {
+            if (config('services.payment_gateway.driver') === 'azampay') {
+                return new AzamPayGateway(
+                    config('services.payment_gateway.azampay.auth_base_url'),
+                    config('services.payment_gateway.azampay.checkout_base_url'),
+                    config('services.payment_gateway.azampay.app_name'),
+                    config('services.payment_gateway.azampay.client_id'),
+                    config('services.payment_gateway.azampay.client_secret'),
+                );
+            }
+
+            return new LogPaymentGateway;
         });
     }
 
