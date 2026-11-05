@@ -44,6 +44,13 @@ Route::prefix('v1')->group(function () {
     // Protected by its own shared-secret token (see the controller) instead.
     Route::post('/payments/azampay/callback', [\App\Http\Controllers\Api\V1\PaymentGatewayCallbackController::class, 'azampay']);
 
+    // AzamPay's Bill Pay product calls these three directly — no Sanctum
+    // session, no tenant context (the controller authenticates via its
+    // own JWT+Hash check instead, same reasoning as the callback above).
+    Route::post('/billpay/name-lookup', [\App\Http\Controllers\Api\V1\BillPayController::class, 'nameLookup']);
+    Route::post('/billpay/payment', [\App\Http\Controllers\Api\V1\BillPayController::class, 'payment']);
+    Route::post('/billpay/status-check', [\App\Http\Controllers\Api\V1\BillPayController::class, 'statusCheck']);
+
     Route::middleware(['auth:sanctum', 'tenant', \App\Http\Middleware\SetLocale::class])->group(function () {
         Route::get('/auth/me', [AuthController::class, 'me']);
         Route::post('/auth/logout', [AuthController::class, 'logout']);

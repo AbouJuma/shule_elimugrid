@@ -66,9 +66,16 @@ class PaymentService
      * would just make it disappear from our books. recorded_by stays null:
      * no staff member recorded this, the gateway's callback did.
      */
-    public function recordFromGateway(Invoice $invoice, string $amount, ?string $reference, string $paidOn): Payment
-    {
-        return DB::transaction(function () use ($invoice, $amount, $reference, $paidOn) {
+    public function recordFromGateway(
+        Invoice $invoice,
+        string $amount,
+        ?string $reference,
+        string $paidOn,
+        string $method = 'mobile_money',
+        string $notes = 'Paid via mobile money checkout.',
+        ?int $billPayPaymentId = null,
+    ): Payment {
+        return DB::transaction(function () use ($invoice, $amount, $reference, $paidOn, $method, $notes, $billPayPaymentId) {
             $locked = Invoice::query()->lockForUpdate()->findOrFail($invoice->id);
 
             $newAmountPaid = bcadd((string) $locked->amount_paid, $amount, 2);
@@ -80,11 +87,12 @@ class PaymentService
                 'receipt_number' => $this->numbers->nextReceiptNumber($locked->school),
                 'amount' => $amount,
                 'type' => 'payment',
-                'method' => 'mobile_money',
+                'method' => $method,
                 'reference' => $reference,
-                'notes' => 'Paid via mobile money checkout.',
+                'notes' => $notes,
                 'paid_on' => $paidOn,
                 'recorded_by' => null,
+                'bill_pay_payment_id' => $billPayPaymentId,
             ]);
 
             $locked->update([

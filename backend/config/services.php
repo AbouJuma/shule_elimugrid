@@ -87,12 +87,29 @@ return [
             'app_name' => env('AZAMPAY_APP_NAME'),
             'client_id' => env('AZAMPAY_CLIENT_ID'),
             'client_secret' => env('AZAMPAY_CLIENT_SECRET'),
-            // Our own shared secret, appended as ?token=... to the callback
-            // URL we register in the AzamPay dashboard — AzamPay's sandbox
-            // doesn't sign its callbacks, so without this anyone who finds
-            // the URL could POST a fake "payment successful".
+            // NOT something we invent — copy the "Token" value shown on
+            // AzamPay's own Register App dashboard, next to the Client
+            // ID/Secret. Per their UI: "a secure API token for your
+            // application to receive callback of the payment... you need
+            // to validate this while receiving callback."
             'callback_token' => env('AZAMPAY_CALLBACK_TOKEN'),
         ],
+    ],
+
+    /*
+     * AzamPay's Bill Pay product (a DIFFERENT product from the Checkout
+     * API above) — lets a guardian pay by entering the student's control
+     * number directly into any bank's or mobile network's own "pay bill"
+     * menu, no app required. Unlike Checkout, there's no self-service
+     * dashboard registration for this: per
+     * https://developerdocs.azampay.co.tz/tanzania/bill-pay-api, a
+     * business must email support@azampay.com to become a "biller", and
+     * the shared secret is "shared privately" afterwards — not shown in
+     * any dashboard. Fails closed (rejects every request) until that
+     * secret is set, same pattern as every other driver here.
+     */
+    'bill_pay' => [
+        'shared_secret' => env('AZAMPAY_BILLPAY_SHARED_SECRET'),
     ],
 
     /*

@@ -19,7 +19,7 @@ class Payment extends Model
 
     protected $fillable = [
         'school_id', 'invoice_id', 'student_id', 'receipt_number', 'amount', 'type',
-        'method', 'reference', 'notes', 'paid_on', 'recorded_by',
+        'method', 'reference', 'notes', 'paid_on', 'recorded_by', 'bill_pay_payment_id',
     ];
 
     protected function casts(): array
@@ -50,5 +50,11 @@ class Payment extends Model
     public function recordedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'recorded_by');
+    }
+
+    /** Set only when this payment is one FIFO-split piece of a Bill Pay lump sum (control-number payment). */
+    public function billPayPayment(): BelongsTo
+    {
+        return $this->belongsTo(BillPayPayment::class);
     }
 }
