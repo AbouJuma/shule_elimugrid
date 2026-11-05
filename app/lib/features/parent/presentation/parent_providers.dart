@@ -40,3 +40,17 @@ final childResultsProvider = FutureProvider.autoDispose.family<ChildResults, (St
 );
 
 final childTimetableProvider = FutureProvider.autoDispose.family<TimetableData, String>((ref, id) => ref.watch(parentRepositoryProvider).timetable(id));
+
+/// Polls a gateway checkout's status every 3s until it's settled
+/// (completed or failed) — the guardian is approving/declining a push on
+/// their own phone, or entering an OTP, somewhere outside this screen.
+final paymentStatusProvider = StreamProvider.autoDispose.family<GatewayTransaction, ({String childId, String transactionId})>((ref, key) async* {
+  final repo = ref.watch(parentRepositoryProvider);
+
+  while (true) {
+    final transaction = await repo.paymentStatus(key.childId, key.transactionId);
+    yield transaction;
+    if (transaction.isSettled) break;
+    await Future<void>.delayed(const Duration(seconds: 3));
+  }
+});

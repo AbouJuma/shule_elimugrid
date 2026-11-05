@@ -113,6 +113,29 @@ class ChildInvoice {
   );
 }
 
+/// Mirrors App\Http\Controllers\Api\V1\ParentController::transactionPayload().
+class GatewayTransaction {
+  const GatewayTransaction({required this.id, required this.status, required this.amount, this.failureReason, this.receiptNumber});
+
+  final String id;
+
+  /// initiated | pending | completed | failed
+  final String status;
+  final String amount;
+  final String? failureReason;
+  final String? receiptNumber;
+
+  bool get isSettled => status == 'completed' || status == 'failed';
+
+  factory GatewayTransaction.fromJson(Map<String, dynamic> json) => GatewayTransaction(
+    id: json['id'] as String,
+    status: json['status'] as String,
+    amount: '${json['amount']}',
+    failureReason: json['failure_reason'] as String?,
+    receiptNumber: json['receipt_number'] as String?,
+  );
+}
+
 class ChildFees {
   const ChildFees({required this.currency, required this.total, required this.paid, required this.balance, required this.invoices});
 

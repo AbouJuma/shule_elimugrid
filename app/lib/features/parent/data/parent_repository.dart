@@ -30,4 +30,36 @@ class ParentRepository {
     '/auth/password',
     data: {'current_password': current, 'password': password, 'password_confirmation': confirmation},
   );
+
+  /// Mobile money (Airtel/Tigo/Halopesa/Azampesa/Mpesa) pushes a prompt to
+  /// [msisdn]; bank (CRDB/NMB) needs [otp] (the guardian dials their bank's
+  /// own USSD code to get one) and [accountNumber] as well.
+  Future<GatewayTransaction> payInvoice(
+    String childId,
+    String invoiceId, {
+    required String msisdn,
+    required String provider,
+    String? amount,
+    String? otp,
+    String? accountNumber,
+  }) async {
+    final body = await _client.post(
+      '/my/children/$childId/invoices/$invoiceId/pay',
+      data: {
+        'msisdn': msisdn,
+        'provider': provider,
+        if (amount != null && amount.isNotEmpty) 'amount': amount,
+        if (otp != null && otp.isNotEmpty) 'otp': otp,
+        if (accountNumber != null && accountNumber.isNotEmpty) 'account_number': accountNumber,
+      },
+    );
+
+    return GatewayTransaction.fromJson(body['data'] as Map<String, dynamic>);
+  }
+
+  /// Poll this while waiting for the guardian to approve the push on their phone.
+  Future<GatewayTransaction> paymentStatus(String childId, String transactionId) async {
+    final body = await _client.get('/my/children/$childId/payments/$transactionId');
+    return GatewayTransaction.fromJson(body['data'] as Map<String, dynamic>);
+  }
 }

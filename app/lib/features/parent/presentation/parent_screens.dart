@@ -6,6 +6,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/providers.dart';
 import '../../../shared/utils/currency.dart';
+import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/pdf_viewer_screen.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../../learning/presentation/learning_screens.dart' show LearningHubTab;
@@ -14,6 +15,7 @@ import '../../transport/presentation/widgets/trip_map.dart';
 import '../../transport/presentation/widgets/trip_widgets.dart';
 import '../domain/parent_models.dart';
 import 'parent_providers.dart';
+import 'pay_invoice_sheet.dart';
 
 String _fmt(num? v) => v == null ? '—' : (v % 1 == 0 ? v.toInt().toString() : v.toStringAsFixed(1));
 
@@ -311,18 +313,32 @@ class _FeesTab extends ConsumerWidget {
             for (final i in value.invoices)
               Card(
                 margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-                child: ListTile(
-                  title: Text(i.number, style: AppTypography.bodyLg),
-                  subtitle: Text(
-                    [
-                      '${context.tr('Balance')}: ${value.currency} ${formatMoney(i.balance)}',
-                      if (i.controlNumber != null) '${context.tr('Control number')}: ${i.controlNumber}',
-                      if (i.dueDate != null) '${context.tr('Due')}: ${i.dueDate}',
-                    ].join('\n'),
-                    style: AppTypography.bodySm,
-                  ),
-                  isThreeLine: true,
-                  trailing: Text(context.tr(i.status), style: AppTypography.label.copyWith(color: i.balance > 0 ? AppColors.gold700 : AppColors.green700)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ListTile(
+                      title: Text(i.number, style: AppTypography.bodyLg),
+                      subtitle: Text(
+                        [
+                          '${context.tr('Balance')}: ${value.currency} ${formatMoney(i.balance)}',
+                          if (i.controlNumber != null) '${context.tr('Control number')}: ${i.controlNumber}',
+                          if (i.dueDate != null) '${context.tr('Due')}: ${i.dueDate}',
+                        ].join('\n'),
+                        style: AppTypography.bodySm,
+                      ),
+                      isThreeLine: true,
+                      trailing: Text(context.tr(i.status), style: AppTypography.label.copyWith(color: i.balance > 0 ? AppColors.gold700 : AppColors.green700)),
+                    ),
+                    if (i.balance > 0)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(AppSpacing.md, 0, AppSpacing.md, AppSpacing.md),
+                        child: AppButton(
+                          label: 'Pay now',
+                          variant: AppButtonVariant.gold,
+                          onPressed: () => showPayInvoiceSheet(context, childId: childId, invoice: i, currency: value.currency),
+                        ),
+                      ),
+                  ],
                 ),
               ),
           ],
