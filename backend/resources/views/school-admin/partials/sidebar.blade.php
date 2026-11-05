@@ -5,7 +5,7 @@
     // Which group (if any) the current page belongs to — used to
     // auto-expand that group so navigating never hides your own location.
     $groups = [
-        'academics' => ['academics', 'terms', 'students', 'attendance', 'subjects', 'timetable', 'exams', 'results'],
+        'academics' => ['academics', 'terms', 'students', 'guardians', 'attendance', 'subjects', 'timetable', 'exams', 'results'],
         'finance' => ['fee-structures', 'invoices', 'bank-accounts'],
         'documents' => ['certificates', 'id-cards'],
         'transport' => ['vehicles', 'transport-routes', 'transport-live'],
@@ -27,7 +27,7 @@
     </a>
 @endcan
 
-@if ($user->canAny(['academic_years.view', 'students.view', 'attendance.view', 'subjects.view', 'exams.view', 'results.view', 'timetable.view']))
+@if ($user->canAny(['academic_years.view', 'students.view', 'guardians.manage', 'attendance.view', 'subjects.view', 'exams.view', 'results.view', 'timetable.view']))
     <a class="nav-link nav-group-toggle" data-bs-toggle="collapse" href="#navGroupAcademics" role="button"
        aria-expanded="{{ $activeGroup === 'academics' ? 'true' : 'false' }}">
         <span><i class="bi bi-mortarboard me-2"></i> {{ __('Academics') }}</span>
@@ -40,6 +40,9 @@
         @endcan
         @can('students.view')
             <a class="nav-link {{ $active === 'students' ? 'active' : '' }}" href="{{ route('school-admin.students.index') }}">{{ __('Students') }}</a>
+        @endcan
+        @can('guardians.manage')
+            <a class="nav-link {{ $active === 'guardians' ? 'active' : '' }}" href="{{ route('school-admin.guardians.index') }}">{{ __('Guardians') }}</a>
         @endcan
         @can('attendance.view')
             <a class="nav-link {{ $active === 'attendance' ? 'active' : '' }}" href="{{ route('school-admin.attendance.index') }}">{{ __('Attendance') }}</a>

@@ -153,6 +153,9 @@ Route::middleware(['auth', 'tenant'])->group(function () {
     });
 
     Route::prefix('guardians')->name('school-admin.guardians.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Web\GuardianController::class, 'index'])->name('index');
+        Route::put('/{guardian}', [\App\Http\Controllers\Web\GuardianController::class, 'update'])->name('update');
+        Route::delete('/{guardian}', [\App\Http\Controllers\Web\GuardianController::class, 'destroy'])->name('destroy');
         Route::post('/{guardian}/account', [\App\Http\Controllers\Web\GuardianAccountController::class, 'store'])->name('account.store');
         Route::post('/{guardian}/account/reset', [\App\Http\Controllers\Web\GuardianAccountController::class, 'reset'])->name('account.reset');
     });
