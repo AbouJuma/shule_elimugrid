@@ -22,8 +22,8 @@
 </a>
 
 @can('roles.view')
-    <a class="nav-link {{ $active === 'roles' ? 'active' : '' }}" href="{{ route('school-admin.roles.index') }}">
-        <i class="bi bi-shield-lock me-2"></i> {{ __('Roles') }}
+    <a class="nav-link {{ in_array($active, ['roles', 'settings'], true) ? 'active' : '' }}" href="{{ route('school-admin.settings.index') }}">
+        <i class="bi bi-gear me-2"></i> {{ __('Settings') }}
     </a>
 @endcan
 

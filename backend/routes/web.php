@@ -99,6 +99,10 @@ Route::middleware(['auth', 'tenant'])->group(function () {
         Route::delete('/{role}', [RoleController::class, 'destroy'])->name('destroy');
     });
 
+    // Roles & who holds them, in one place — posts to the roles.* and
+    // staff.update routes above, this just combines the views.
+    Route::get('/settings', [\App\Http\Controllers\Web\SettingsController::class, 'index'])->name('school-admin.settings.index');
+
     Route::prefix('academics')->name('school-admin.academics.')->group(function () {
         Route::get('/', [AcademicSetupController::class, 'index'])->name('index');
         Route::post('/years', [AcademicSetupController::class, 'storeYear'])->name('years.store');
