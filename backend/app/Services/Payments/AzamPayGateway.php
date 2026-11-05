@@ -9,15 +9,31 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * AzamPay (https://azampay.co.tz) checkout — mobile money AND bank, built
- * against their documented sandbox API (token auth against the
- * Authenticator service, then a push request to the Checkout service's
- * /mno/checkout or /bank/checkout). Not verified against a live sandbox
- * account: no real AzamPay credentials exist in this dev environment yet.
- * Treat the request/response shape here as best-effort-accurate to their
- * public docs, not confirmed working — worth a live smoke test with real
- * sandbox credentials before relying on it (same caveat BeemSmsGateway
- * shipped with before it was verified). The /bank/checkout shape is the
- * less-documented of the two publicly — double-check it first.
+ * against https://developerdocs.azampay.co.tz/tanzania/token-generation
+ * and /tanzania/checkout-api, and live-smoke-tested against a real
+ * sandbox account (see AZAMPAY_CLIENT_ID in .env.example):
+ *
+ * - Token endpoint is /AppRegistration/GenerateToken (NOT
+ *   /AppRegistrationService/GenerateToken, which silently 401s with an
+ *   identical "UnAuthorized Access" for every request shape — that wrong
+ *   path cost real debugging time before the docs caught it).
+ * - Checkout calls take the token as a plain `Authorization: Bearer`
+ *   header — confirmed live, mno/checkout returned a real transactionId.
+ * - Bank checkout is NOT a drop-in replacement for mobile money: it needs
+ *   an `otp` the customer gets by dialing a USSD code on their own phone
+ *   (e.g. *150*03# for CRDB, *150*66# for NMB) *outside* our app, plus a
+ *   bank account number distinct from their phone number. There's no
+ *   confirmed way to request that OTP from our side — AzamPay's own docs
+ *   don't document the /azampay/bank/otp request/response shape at all,
+ *   so this class only accepts an OTP the customer already has; it does
+ *   not request one.
+ * - Bank checkout also needs `merchantName` — live-tested: omitting it (as
+ *   the docs' "optional" implied) gets rejected with "Invalid Length of
+ *   field: Merchant Name", so it's required in practice.
+ * - Bank's response shape is NOT the same as mobile money's: a bank error
+ *   message comes back as `msg`, not `message`; a bank success nests its
+ *   reference at `data.properties.ReferenceID`, not a flat `transactionId`.
+ *   Both confirmed live against the real sandbox.
  */
 class AzamPayGateway implements PaymentGateway
 {
@@ -33,7 +49,7 @@ class AzamPayGateway implements PaymentGateway
     ) {
     }
 
-    public function checkout(string $externalId, string $msisdn, string $amount, string $currency, string $provider): PaymentCheckoutResult
+    public function checkout(string $externalId, string $msisdn, string $amount, string $currency, string $provider, array $extra = []): PaymentCheckoutResult
     {
         $token = $this->token();
 
@@ -41,15 +57,33 @@ class AzamPayGateway implements PaymentGateway
             return PaymentCheckoutResult::failed('Could not authenticate with the payment provider.');
         }
 
-        $endpoint = in_array($provider, self::BANK_PROVIDERS, true) ? 'bank' : 'mno';
+        $isBank = in_array($provider, self::BANK_PROVIDERS, true);
+        $endpoint = $isBank ? 'bank' : 'mno';
 
-        $payload = [
-            'accountNumber' => $msisdn,
-            'amount' => $amount,
-            'currency' => $currency,
-            'externalId' => $externalId,
-            'provider' => $provider,
-        ];
+        if ($isBank) {
+            if (empty($extra['otp'])) {
+                return PaymentCheckoutResult::failed('A bank OTP is required — the guardian must dial their bank\'s USSD code to get one.');
+            }
+
+            $payload = [
+                'amount' => $amount,
+                'currencyCode' => $currency,
+                'merchantAccountNumber' => $extra['account_number'] ?? $msisdn,
+                'merchantMobileNumber' => $msisdn,
+                'merchantName' => $extra['account_name'] ?? 'ElimuGrid Guardian',
+                'otp' => $extra['otp'],
+                'provider' => $provider,
+                'referenceId' => $externalId,
+            ];
+        } else {
+            $payload = [
+                'accountNumber' => $msisdn,
+                'amount' => $amount,
+                'currency' => $currency,
+                'externalId' => $externalId,
+                'provider' => $provider,
+            ];
+        }
 
         try {
             $response = Http::withToken($token)
@@ -66,12 +100,16 @@ class AzamPayGateway implements PaymentGateway
         if (! $response->successful() || ($body['success'] ?? true) === false) {
             Log::warning('AzamPay checkout rejected', ['external_id' => $externalId, 'channel' => $endpoint, 'status' => $response->status(), 'body' => $body]);
 
-            return PaymentCheckoutResult::failed($body['message'] ?? "Payment provider returned HTTP {$response->status()}.", $body);
+            $message = $body['message'] ?? $body['msg'] ?? null;
+
+            return PaymentCheckoutResult::failed($message ?: "Payment provider returned HTTP {$response->status()}.", $body);
         }
 
-        // Field name is a best guess ('transactionId' per AzamPay's docs) —
-        // confirm against a real sandbox response once credentials exist.
-        return PaymentCheckoutResult::pending($body['transactionId'] ?? $body['data']['transactionId'] ?? null, $body);
+        $transactionId = $isBank
+            ? ($body['data']['properties']['ReferenceID'] ?? null)
+            : ($body['transactionId'] ?? null);
+
+        return PaymentCheckoutResult::pending($transactionId, $body);
     }
 
     /**
@@ -87,7 +125,7 @@ class AzamPayGateway implements PaymentGateway
         }
 
         try {
-            $response = Http::timeout(10)->post("{$this->authBaseUrl}/AppRegistrationService/GenerateToken", [
+            $response = Http::timeout(10)->post("{$this->authBaseUrl}/AppRegistration/GenerateToken", [
                 'appName' => $this->appName,
                 'clientId' => $this->clientId,
                 'clientSecret' => $this->clientSecret,
@@ -105,7 +143,7 @@ class AzamPayGateway implements PaymentGateway
         }
 
         $body = $response->json() ?? [];
-        $token = $body['data']['accessToken'] ?? $body['accessToken'] ?? null;
+        $token = $body['data']['accessToken'] ?? null;
 
         if ($token) {
             Cache::put('azampay_access_token', $token, 3300);

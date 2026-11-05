@@ -23,6 +23,16 @@ use Illuminate\Support\Facades\Log;
  * — regardless of outcome — always logs the full raw headers/body first,
  * so the first real sandbox callback tells us exactly where it lives and
  * this can be tightened to that one spot.
+ *
+ * Honesty flag: AzamPay's own published docs
+ * (developerdocs.azampay.co.tz/tanzania/checkout-api#callback) describe a
+ * *different* authenticity check — an RSA `signature` field verified
+ * against a public key fetched from /azampay/v1/public-key — and say
+ * nothing about a token check at all. That page even contradicts itself
+ * on which fields the signature covers. Rather than implement a signature
+ * check against an ambiguous spec and risk silently rejecting genuine
+ * callbacks, this keeps the dashboard-token check as the hard gate (it's
+ * at least unambiguous) and just logs the `signature` field raw for now.
  */
 class PaymentGatewayCallbackController extends Controller
 {

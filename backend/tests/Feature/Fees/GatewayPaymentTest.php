@@ -218,10 +218,56 @@ class GatewayPaymentTest extends TestCase
 
         Sanctum::actingAs($parentUser);
         $this->postJson("/api/v1/my/children/{$student->uuid}/invoices/{$invoiceUuid}/pay", [
-            'msisdn' => '0712345678', 'provider' => 'CRDB',
+            'msisdn' => '0712345678', 'provider' => 'CRDB', 'otp' => '123456', 'account_number' => '0100000000000',
         ])->assertOk()->assertJsonPath('data.status', 'pending');
 
         Http::assertSent(fn ($request) => str_contains($request->url(), 'azampay/bank/checkout'));
+    }
+
+    public function test_a_bank_payment_without_an_otp_is_rejected(): void
+    {
+        ['student' => $student, 'parentUser' => $parentUser, 'invoiceUuid' => $invoiceUuid] = $this->scenario();
+
+        Sanctum::actingAs($parentUser);
+        $this->postJson("/api/v1/my/children/{$student->uuid}/invoices/{$invoiceUuid}/pay", [
+            'msisdn' => '0712345678', 'provider' => 'CRDB',
+        ])->assertUnprocessable()->assertJsonValidationErrors(['otp', 'account_number']);
+    }
+
+    public function test_azampay_callback_matches_azampays_documented_externalreference_field(): void
+    {
+        config(['services.payment_gateway.driver' => 'azampay']);
+        config(['services.payment_gateway.azampay.app_name' => 'ElimuGrid']);
+        config(['services.payment_gateway.azampay.client_id' => 'id']);
+        config(['services.payment_gateway.azampay.client_secret' => 'secret']);
+        config(['services.payment_gateway.azampay.callback_token' => 'test-token']);
+
+        Http::fake([
+            'authenticator-sandbox.azampay.co.tz/*' => Http::response(['data' => ['accessToken' => 'fake-token']], 200),
+            'sandbox.azampay.co.tz/azampay/mno/checkout' => Http::response(['success' => true, 'transactionId' => 'AZM-1'], 200),
+        ]);
+
+        ['student' => $student, 'parentUser' => $parentUser, 'invoiceUuid' => $invoiceUuid] = $this->scenario();
+
+        Sanctum::actingAs($parentUser);
+        $this->postJson("/api/v1/my/children/{$student->uuid}/invoices/{$invoiceUuid}/pay", [
+            'msisdn' => '0712345678', 'provider' => 'Airtel',
+        ])->assertOk();
+
+        $externalId = \App\Models\PaymentGatewayTransaction::where('invoice_id', \App\Models\Invoice::where('uuid', $invoiceUuid)->value('id'))->value('external_id');
+
+        // AzamPay's documented callback shape — externalreference, transactionstatus, transid.
+        $this->postJson('/api/v1/payments/azampay/callback?token=test-token', [
+            'message' => 'Transaction completed successfully', 'transactionstatus' => 'success',
+            'externalreference' => $externalId, 'transid' => 'TXN-REAL-1', 'msisdn' => '255712345678',
+        ])->assertOk();
+
+        $invoice = Invoice::where('uuid', $invoiceUuid)->first();
+        $this->assertSame('paid', $invoice->status);
+        // The checkout response already supplied a gateway_transaction_id
+        // (AZM-1) — the callback's transid only fills it if still blank,
+        // so the originally-returned id wins, not the callback's.
+        $this->assertSame('AZM-1', $invoice->payments()->first()->reference);
     }
 
     public function test_azampay_callback_for_an_unknown_transaction_is_ignored_not_crashed(): void

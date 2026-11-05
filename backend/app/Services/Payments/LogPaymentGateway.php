@@ -14,7 +14,7 @@ use Illuminate\Support\Str;
  */
 class LogPaymentGateway implements PaymentGateway
 {
-    public function checkout(string $externalId, string $msisdn, string $amount, string $currency, string $provider): PaymentCheckoutResult
+    public function checkout(string $externalId, string $msisdn, string $amount, string $currency, string $provider, array $extra = []): PaymentCheckoutResult
     {
         $fakeId = 'SIMULATED-'.Str::upper(Str::random(10));
 

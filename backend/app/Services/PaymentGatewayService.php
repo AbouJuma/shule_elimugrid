@@ -67,7 +67,10 @@ class PaymentGatewayService
             'raw_request' => $data,
         ]);
 
-        $result = $this->gateway->checkout($externalId, $data['msisdn'], (string) $amount, $transaction->currency, $data['provider']);
+        $result = $this->gateway->checkout(
+            $externalId, $data['msisdn'], (string) $amount, $transaction->currency, $data['provider'],
+            ['otp' => $data['otp'] ?? null, 'account_number' => $data['account_number'] ?? null, 'account_name' => $data['account_name'] ?? null],
+        );
 
         $transaction->update([
             'status' => $result->status,
@@ -84,15 +87,16 @@ class PaymentGatewayService
     }
 
     /**
-     * The webhook AzamPay (or whichever gateway) calls when a push is
-     * approved or declined. Always matched by external_id — whatever field
-     * name the gateway uses for "the reference you gave us" is checked
-     * against a short list of likely names, since the exact shape hasn't
-     * been confirmed against a live sandbox callback yet.
+     * The webhook AzamPay calls when a push is approved or declined.
+     * `externalreference` is their documented field (an echo of the
+     * `externalId`/`referenceId` we sent at checkout — see
+     * https://developerdocs.azampay.co.tz/tanzania/checkout-api#callback);
+     * the rest are kept as a fallback in case a real callback doesn't
+     * match the docs exactly, since that hasn't been observed live yet.
      */
     public function handleCallback(array $payload): void
     {
-        $externalId = $payload['externalId'] ?? $payload['external_id'] ?? $payload['utilityref'] ?? $payload['referenceId'] ?? null;
+        $externalId = $payload['externalreference'] ?? $payload['externalId'] ?? $payload['external_id'] ?? $payload['utilityref'] ?? $payload['referenceId'] ?? null;
 
         if (! $externalId) {
             Log::warning('AzamPay callback with no recognizable external id', ['payload' => $payload]);
@@ -118,7 +122,7 @@ class PaymentGatewayService
         $transaction->update([
             'raw_callback' => $payload,
             'gateway_transaction_id' => $transaction->gateway_transaction_id
-                ?? ($payload['transactionId'] ?? $payload['transactionid'] ?? null),
+                ?? ($payload['transid'] ?? $payload['transactionId'] ?? $payload['transactionid'] ?? null),
         ]);
 
         if ($succeeded) {

@@ -100,7 +100,9 @@ class ParentController extends Controller
         $child = $this->child($request, $student);
         $invoiceModel = Invoice::where('uuid', $invoice)->where('student_id', $child->id)->firstOrFail();
 
-        $transaction = $gateway->initiate($invoiceModel, $request->validated());
+        // Bank checkout requires a merchantName; mobile money ignores it.
+        // The signed-in guardian's own name, not something worth a form field.
+        $transaction = $gateway->initiate($invoiceModel, $request->validated() + ['account_name' => $request->user()->name]);
 
         return response()->json(['data' => $this->transactionPayload($transaction)]);
     }
