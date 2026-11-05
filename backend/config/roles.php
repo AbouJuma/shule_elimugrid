@@ -38,6 +38,20 @@ return [
     'super_admin_role' => 'Super Admin',
 
     /*
+     * Roles whose login only ever goes through the mobile app's API
+     * (Sanctum), never the staff web portal (session-based). Enforced in
+     * PortalAuthController — a user whose ENTIRE role set is within this
+     * list is rejected at web login, with a message pointing them to the
+     * app instead. Without this, a guardian/parent account (deliberately
+     * given zero Spatie permissions — see 'parent_permissions' below)
+     * still lands on the staff dashboard after web login, where several
+     * sidebar items (e.g. Procurement) are intentionally left ungated
+     * because they were written under the assumption that only staff
+     * can reach the portal at all.
+     */
+    'app_only_roles' => ['Parent', 'Student'],
+
+    /*
      * Permissions granted to the "School Administrator" role at
      * provisioning time. Extend this as each module ships — it's the
      * single place that has to stay in sync with database/seeders/

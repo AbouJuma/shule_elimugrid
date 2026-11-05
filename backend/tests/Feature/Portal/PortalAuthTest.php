@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Portal;
 
+use App\Models\Guardian;
 use App\Models\School;
 use App\Models\User;
 use App\Services\DefaultRoleProvisioner;
@@ -71,6 +72,42 @@ class PortalAuthTest extends TestCase
         $this->assertAuthenticatedAs($admin);
 
         $this->get('/dashboard')->assertOk()->assertSee('Portal Admin');
+    }
+
+    public function test_a_parent_only_account_cannot_sign_into_the_staff_portal(): void
+    {
+        $school = School::create(['name' => 'Portal School', 'slug' => 'portal-school', 'status' => 'active']);
+        app(DefaultRoleProvisioner::class)->provision($school);
+
+        setPermissionsTeamId($school->id);
+        $parentUser = User::create([
+            'school_id' => $school->id, 'name' => 'Mother', 'email' => 'mother@test.local', 'password' => 'password', 'status' => 'active',
+        ]);
+        $parentUser->assignRole('Parent');
+        Guardian::create(['school_id' => $school->id, 'user_id' => $parentUser->id, 'name' => 'Mother', 'phone' => '0700000000']);
+
+        $response = $this->post('/login', ['email' => 'mother@test.local', 'password' => 'password']);
+
+        $response->assertSessionHasErrors('email');
+        $this->assertGuest();
+    }
+
+    /** A staff member who is ALSO a guardian of their own child must not be locked out of the portal they actually work in. */
+    public function test_a_staff_member_who_also_holds_the_parent_role_can_still_sign_into_the_portal(): void
+    {
+        $school = School::create(['name' => 'Portal School', 'slug' => 'portal-school', 'status' => 'active']);
+        app(DefaultRoleProvisioner::class)->provision($school);
+
+        setPermissionsTeamId($school->id);
+        $teacherParent = User::create([
+            'school_id' => $school->id, 'name' => 'Teacher Mother', 'email' => 'teacher-mother@test.local', 'password' => 'password', 'status' => 'active',
+        ]);
+        $teacherParent->assignRole(['Teacher', 'Parent']);
+
+        $response = $this->post('/login', ['email' => 'teacher-mother@test.local', 'password' => 'password']);
+
+        $response->assertRedirect('/dashboard');
+        $this->assertAuthenticatedAs($teacherParent);
     }
 
     public function test_wrong_password_is_rejected(): void

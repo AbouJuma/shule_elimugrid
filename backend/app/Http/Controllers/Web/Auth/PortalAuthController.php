@@ -39,6 +39,7 @@ class PortalAuthController extends Controller
 
         try {
             $accountStatusGuard->ensureLoginAllowed(Auth::user());
+            $this->ensureNotAppOnlyAccount(Auth::user());
         } catch (ValidationException $e) {
             Auth::logout();
             $request->session()->invalidate();
@@ -48,6 +49,31 @@ class PortalAuthController extends Controller
         }
 
         return redirect()->intended(route('dashboard'));
+    }
+
+    /**
+     * A guardian/parent (or, once that module exists, a student) account
+     * is for the mobile app only — it's deliberately given zero
+     * permissions (see config('roles.parent_permissions')), but several
+     * staff-portal sidebar items have no permission gate at all because
+     * they were written assuming only staff could ever reach this portal.
+     * Reject here instead of relying on every such item to check a
+     * permission a parent will never have.
+     */
+    protected function ensureNotAppOnlyAccount(User $user): void
+    {
+        if (! $user->school_id) {
+            return;
+        }
+
+        setPermissionsTeamId($user->school_id);
+        $roleNames = $user->roles->pluck('name');
+
+        if ($roleNames->isNotEmpty() && $roleNames->diff(config('roles.app_only_roles'))->isEmpty()) {
+            throw ValidationException::withMessages([
+                'email' => [__('This account is for the ElimuGrid mobile app. Please sign in there instead.')],
+            ]);
+        }
     }
 
     public function destroy(Request $request)
