@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/providers.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../shared/crud/crud_list.dart';
 import '../domain/guardian_model.dart';
 import '../../auth/presentation/auth_controller.dart';
 import 'guardian_form_screen.dart';
@@ -76,6 +78,29 @@ class _GuardiansListScreenState extends ConsumerState<GuardiansListScreen> {
                   Navigator.of(context).pop();
                   final changed = await manageGuardianLogin(this.context, ref, guardian);
                   if (changed) ref.read(guardiansListControllerProvider.notifier).refresh();
+                },
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              OutlinedButton.icon(
+                icon: const Icon(Icons.delete_outline, color: AppColors.error600),
+                label: Text(context.tr('Delete guardian'), style: const TextStyle(color: AppColors.error600)),
+                onPressed: () async {
+                  final sheetContext = context;
+                  final ok = await confirmAction(
+                    sheetContext,
+                    title: 'Delete this guardian?',
+                    message: context.tr('Removes {name} and signs them out of any login they have. This cannot be undone.', {'name': guardian.name}),
+                  );
+                  if (!ok) return;
+                  if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+
+                  try {
+                    await ref.read(apiClientProvider).delete('/guardians/${guardian.id}');
+                    ref.read(guardiansListControllerProvider.notifier).refresh();
+                    if (this.context.mounted) showInfo(this.context, context.tr('Guardian deleted.'));
+                  } catch (e) {
+                    if (this.context.mounted) showError(this.context, e);
+                  }
                 },
               ),
             ],

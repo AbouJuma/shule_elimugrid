@@ -187,4 +187,35 @@ class MobileCrudTest extends TestCase
         Sanctum::actingAs($this->user('Driver', 'Driver'));
         $this->putJson("/api/v1/guardians/{$guardian->id}", ['name' => 'Hacked', 'phone' => '0'])->assertForbidden();
     }
+
+    public function test_deleting_a_guardian_detaches_their_children_and_suspends_their_login(): void
+    {
+        $admin = $this->user('Admin', 'School Administrator');
+        $guardian = Guardian::create(['school_id' => $this->school->id, 'name' => 'Asha Kileo', 'phone' => '0712345678']);
+        $loginUser = User::create(['school_id' => $this->school->id, 'name' => 'Asha Kileo', 'phone' => '0712345678', 'password' => 'password', 'status' => 'active']);
+        $guardian->update(['user_id' => $loginUser->id]);
+
+        $year = \App\Models\AcademicYear::create(['school_id' => $this->school->id, 'name' => '2026/2027', 'start_date' => '2026-01-01', 'end_date' => '2026-12-31', 'is_current' => true]);
+        $student = \App\Models\Student::create([
+            'school_id' => $this->school->id, 'academic_year_id' => $year->id, 'admission_number' => 'STU-1', 'first_name' => 'Neema', 'last_name' => 'Test',
+            'gender' => 'female', 'date_of_birth' => '2014-01-01', 'admission_date' => '2026-01-10',
+        ]);
+        $student->guardians()->attach($guardian->id, ['relationship' => 'mother', 'is_primary' => true]);
+
+        Sanctum::actingAs($admin);
+        $this->deleteJson("/api/v1/guardians/{$guardian->id}")->assertOk();
+
+        $this->assertSoftDeleted($guardian);
+        $this->assertSame(0, $student->guardians()->count());
+        $this->assertSame('suspended', $loginUser->fresh()->status);
+    }
+
+    public function test_someone_without_guardians_manage_cannot_delete_a_guardian(): void
+    {
+        $guardian = Guardian::create(['school_id' => $this->school->id, 'name' => 'Asha Kileo', 'phone' => '0712345678']);
+
+        Sanctum::actingAs($this->user('Driver', 'Driver'));
+        $this->deleteJson("/api/v1/guardians/{$guardian->id}")->assertForbidden();
+        $this->assertNotSoftDeleted($guardian);
+    }
 }

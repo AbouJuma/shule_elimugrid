@@ -148,6 +148,10 @@ const Map<String, String> swStrings = {
   'Search name or phone…': 'Tafuta jina au simu…',
   'No guardians found.': 'Hakuna walezi waliopatikana.',
   'Could not load guardians.': 'Imeshindwa kupakia walezi.',
+  'Delete guardian': 'Futa mlezi',
+  'Delete this guardian?': 'Futa mlezi huyu?',
+  'Removes {name} and signs them out of any login they have. This cannot be undone.': 'Itamuondoa {name} na kumtoa kwenye akaunti yoyote aliyonayo. Hili haliwezi kutenduliwa.',
+  'Guardian deleted.': 'Mlezi amefutwa.',
 
   // ── Transport ───────────────────────────────────────────────────────
   'Transport': 'Usafiri',

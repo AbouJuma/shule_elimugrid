@@ -40,4 +40,26 @@ class GuardianController extends Controller
 
         return new GuardianResource($guardian->fresh());
     }
+
+    /**
+     * Soft-deletes the guardian. Any login they had is suspended (not
+     * left dangling, able to sign in as a guardian that was just removed)
+     * and they're detached from every student first, so a student's own
+     * Guardians tab doesn't keep showing a deleted one through a stale
+     * pivot row.
+     */
+    public function destroy(Request $request, Guardian $guardian)
+    {
+        $this->authorize('guardians.manage');
+
+        if ($guardian->user_id) {
+            $guardian->user->update(['status' => 'suspended']);
+            $guardian->user->tokens()->delete();
+        }
+
+        $guardian->students()->detach();
+        $guardian->delete();
+
+        return response()->json(['message' => 'Guardian deleted.']);
+    }
 }

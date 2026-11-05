@@ -65,7 +65,7 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('academic-years', AcademicYearController::class)->only(['index', 'store', 'update']);
         Route::apiResource('classes', SchoolClassController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
         Route::apiResource('streams', StreamController::class)->only(['index', 'store', 'update', 'destroy']);
-        Route::apiResource('guardians', GuardianController::class)->only(['index', 'store', 'update']);
+        Route::apiResource('guardians', GuardianController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::apiResource('students', StudentController::class)->only(['index', 'store', 'show', 'update']);
         Route::get('/attendance/classes', [AttendanceController::class, 'classes']);
         Route::get('/attendance', [AttendanceController::class, 'index']);
