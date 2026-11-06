@@ -13,7 +13,16 @@ class ApiClient {
     : _dio = Dio(
         BaseOptions(
           baseUrl: AppConfig.apiBaseUrl,
-          headers: {'Accept': 'application/json'},
+          headers: {
+            'Accept': 'application/json',
+            // The production host's LiteSpeed bot-verification challenges
+            // Dio's default User-Agent ("Dart/x.x (dart:io)") with an HTML
+            // reCAPTCHA page instead of a JSON response — confirmed live,
+            // every API call from the app failed this way. A browser-like
+            // UA sails through untouched; there's no API-key/cert pinning
+            // concern here that a generic UA would weaken.
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 13; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) ElimuGridApp/1.0 Mobile Safari/537.36',
+          },
           connectTimeout: const Duration(seconds: 15),
           receiveTimeout: const Duration(seconds: 15),
         ),
